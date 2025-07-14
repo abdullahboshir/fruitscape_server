@@ -1,34 +1,44 @@
-import { z } from 'zod'
+import { z } from 'zod';
+import { isValidObjectId } from 'mongoose';
 
+// Helper for ObjectId validation
+const objectIdSchema = z.string().refine((val) => isValidObjectId(val), {
+  message: 'Invalid ObjectId',
+});
+
+// Supplier Sub-Schema
+const supplierSchema = z.object({
+  supplier: objectIdSchema,
+  supplyPrice: z.number().min(0),
+  availableStock: z.number().min(0).optional(),
+  leadTime: z.number().min(0).optional(), // in days
+});
+
+// Main Product Schema
 export const productZodSchema = z.object({
-  suppliers: z.array(z.string().regex(/^[a-f\d]{24}$/i), {
-    required_error: 'Suppliers are required',
-  }),
+  name: z.string().trim().min(1).max(100),
+  sku: z.string().trim().min(1).toUpperCase(),
+  category: objectIdSchema,
+  subCategories: z.array(objectIdSchema).optional(),
+  price: z.number().min(0),
+  costPrice: z.number().min(0).optional(),
+  unit: z.enum(['kg', 'gram', 'piece', 'dozen', 'litre', 'ml']),
+  stock: z.number().min(0),
+  suppliers: z.array(supplierSchema).optional(),
+  origin: z.string().trim().min(1),
+  description: z.string().trim().max(1000).optional(),
+  images: z.array(z.string().url()).min(1), // Ensure valid URLs
+  isAvailable: z.boolean().default(true),
+  discount: z.number().min(0).max(100).default(0),
+  tags: z.array(z.string().trim()).default([]),
+  ratings: z.number().min(0).max(5).default(0),
+  reviewsCount: z.number().min(0).default(0),
+  isOrganic: z.boolean().default(false),
+  deliveryTime: z.string().trim().optional(),
+  brand: objectIdSchema.optional(),
+  weight: z.number().min(0).optional(),
+  barcode: z.string().optional(),
+});
 
-  name: z.string().min(1, 'Product name is required'),
-  sku: z.string().min(1, 'SKU is required'),
-  category: z.string().min(1, 'Category is required'),
-
-  subcategories: z
-    .array(z.string().regex(/^[a-f\d]{24}$/i))
-    .optional()
-    .default([]),
-
-  price: z.number().nonnegative('Price must be a positive number'),
-  unit: z.enum(['kg', 'gram', 'piece', 'dozen']),
-  stock: z.number().int().nonnegative(),
-  origin: z.string().min(1, 'Origin is required'),
-
-  description: z.string().optional(),
-  image: z
-    .array(z.string().url('Each image must be a valid URL'))
-    .min(1, 'At least one image is required'),
-
-  isAvailable: z.boolean().optional().default(true),
-  discount: z.number().min(0).max(100).optional().default(0),
-  tags: z.array(z.string()).optional().default([]),
-  ratings: z.number().min(0).max(5).optional().default(0),
-  reviewsCount: z.number().int().optional().default(0),
-  isOrganic: z.boolean().optional().default(false),
-  deliveryTime: z.string().optional(),
-})
+// For partial updates (PATCH requests)
+export const productUpdateSchema = productZodSchema.partial();
