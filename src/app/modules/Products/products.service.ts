@@ -5,11 +5,13 @@ import { Product } from './products.model'
 import { generateProductCode } from './products.util'
 
 export const createProductService = async (payload: IProduct) => {
-  const category = await Category.findOne({ name: payload?.category })
-
+  const category = await Category.findOne({ _id: payload?.category })
+  
+  
   if (!category) {
     new AppError(200, 'The User already has registered!')
   }
+
 
   const productSku = await generateProductCode(category?.name? category?.name : 'others', payload?.origin);
 
